@@ -12,21 +12,24 @@ import torch.nn.functional as F
         
 
 class QANetRevised(nn.Module):
-    def __init__(self, word_vectors, char_vectors, hidden_size, args, drop_prob= 0.):
+    """
+    Architecture is inspired by QANet developed by Yu et. al. (https://arxiv.org/abs/1804.09541)
+    """
+    def __init__(self, word_vectors, char_vectors, args):
         super(QANetRevised, self).__init__()
-        self.emb = layers.QAEmbedding(word_vectors = word_vectors, char_vectors = char_vectors, hidden_size = hidden_size,
-                                        drop_prob = drop_prob)
-        self.att = layers.BiDAFAttention(hidden_size=hidden_size,
-                                         drop_prob=drop_prob)
-        self.context_encoder = layers.EncoderBlock(conv_layers = args.num_conv_layers,  k = args.encoder_k, hidden_dim = hidden_size, dropout_prob = drop_prob, attention_heads = args.attention_heads)
-        self.query_encoder = layers.EncoderBlock(conv_layers = args.num_conv_layers, k = args.encoder_k, hidden_dim = hidden_size, dropout_prob=drop_prob, attention_heads = args.attention_heads)
-        self.encoder_block_1 = layers.EncoderBlock(conv_layers = 2,  k = 5, hidden_dim = hidden_size, dropout_prob = drop_prob, attention_heads = args.attention_heads)
-        self.encoder_block_2 = layers.EncoderBlock(conv_layers = 2,  k = 5, hidden_dim = hidden_size, dropout_prob = drop_prob, attention_heads = args.attention_heads)
-        self.encoder_block_3 = layers.EncoderBlock(conv_layers = 2,  k = 5, hidden_dim = hidden_size, dropout_prob = drop_prob, attention_heads = args.attention_heads)
+        self.hidden_size = args.hidden_size
+        self.emb = layers.QAEmbedding(word_vectors = word_vectors, char_vectors = char_vectors, hidden_size = self.hidden_size,
+                                        drop_prob = args.drop_prob)
+        self.att = layers.BiDAFAttention(hidden_size=self.hidden_size,
+                                         drop_prob=args.drop_prob)
+        self.context_encoder = layers.EncoderBlock(conv_layers = args.num_conv_layers,  k = args.encoder_k, hidden_dim = self.hidden_size, dropout_prob = args.drop_prob, attention_heads = args.attention_heads)
+        self.query_encoder = layers.EncoderBlock(conv_layers = args.num_conv_layers, k = args.encoder_k, hidden_dim = self.hidden_size, dropout_prob=args.drop_prob, attention_heads = args.attention_heads)
+        self.encoder_block_1 = layers.EncoderBlock(conv_layers = 2,  k = 5, hidden_dim = self.hidden_size, dropout_prob = args.drop_prob, attention_heads = args.attention_heads)
+        self.encoder_block_2 = layers.EncoderBlock(conv_layers = 2,  k = 5, hidden_dim = self.hidden_size, dropout_prob = args.drop_prob, attention_heads = args.attention_heads)
+        self.encoder_block_3 = layers.EncoderBlock(conv_layers = 2,  k = 5, hidden_dim = self.hidden_size, dropout_prob = args.drop_prob, attention_heads = args.attention_heads)
         self.stacked_encoder_blocks = nn.ModuleList([self.encoder_block_1, self.encoder_block_2, self.encoder_block_3])
-        self.output = layers.QANetOutput(hidden_size = hidden_size, dropout_prob = drop_prob)
-        self.resize_attn = layers.DepthwiseSeparableConv(hidden_size * 4, hidden_size, 5)
-        self.hidden_size = hidden_size
+        self.output = layers.QANetOutput(hidden_size = self.hidden_size, dropout_prob = args.drop_prob)
+        self.resize_attn = layers.DepthwiseSeparableConv(self.hidden_size * 4, self.hidden_size, 5)
         self.resize_context = DepthwiseSeparableConv2(500, self.hidden_size, 7)
         self.resize_query = DepthwiseSeparableConv2(500, self.hidden_size, 7)
 
@@ -58,6 +61,7 @@ class QANetRevised(nn.Module):
         q_enc = self.query_encoder(q_emb, q_mask, q_non_pad_mask, qw_idxs.size(1), args.hidden_size, args.num_conv_layers)
         
         # Using BiDAF Attention over context and query encodings
+        # Different masks are used in the BiDAF attention as compared to the MultiHead Attention in the encoders.
         c_mask_2 = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask_2 = torch.zeros_like(qw_idxs) != qw_idxs
         att = self.att(c_enc, q_enc, c_mask_2, q_mask_2)
