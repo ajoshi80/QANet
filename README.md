@@ -19,5 +19,3 @@ Reading comprehension and question answering are critical natural language tasks
 
 The key advantage of using convolutions and attention is to improve speed in inference and training. With the increased focus on privacy and running machine learning on the edge, faster models would be preferable.
 
-The Best Performing Model on SQuAD 2.0 was the BiDAF architecture with character embeddings.
-![alt text](https://github.com/ajoshi80/QANet/blob/master/bidaf_char.PNG)
