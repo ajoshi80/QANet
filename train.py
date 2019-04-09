@@ -45,7 +45,7 @@ def main(args):
     # Get model
     log.info('Building model...')
     model = QANetRevised(word_vectors=word_vectors, char_vectors = char_vectors,
-                    hidden_size = args.hidden_size, args= args, drop_prob= args.drop_prob) 
+                         args= args) 
     bidafmodel = BiDAF(word_vectors=word_vectors, char_vectors = char_vectors,
                   hidden_size=args.hidden_size,
                   drop_prob=args.drop_prob, args = args)
